@@ -38,15 +38,6 @@ void printa_tabuleiro() {
 
 }
 
-void novo_print() {
-    /*
-    - iniciar barrinha de tamanho 7, do 27 ao 33
-    - iniciar direcionais como 0
-    - checar toda iteracao os direcionais
-        - printar conforme nova coordenada
-    */
-}
-
 struct termios transicao_canonico() {
     struct termios oldt, newt;
     tcgetattr(STDIN_FILENO, &oldt);
@@ -77,6 +68,37 @@ void desenha_barras(int ybarra_esquerda, int ybarra_direita) {
     }
 }
 
+void le_comandos(int *dir_esquerda, int *dir_direita, int *quit) {
+    struct timeval tv;
+    fd_set fds;
+    tv.tv_sec = 0;
+    tv.tv_usec = 0;
+
+    FD_ZERO(&fds);
+    FD_SET(STDIN_FILENO, &fds);
+    select(STDIN_FILENO + 1, &fds, NULL, NULL, &tv);
+    if (FD_ISSET(STDIN_FILENO, &fds)) {
+        switch(getch()) {
+            case 'w':
+                *dir_esquerda = -1;
+                break;
+            case 'a':
+                *dir_esquerda = 1;
+                break;
+            case '\033':
+                getch();
+                switch(getch()) {
+                    case 'A':
+                        *dir_direita = -1;
+                        break;
+                    case 'B':
+                        *dir_direita = 1;
+                        break;
+                }
+        }
+    }
+}
+
 
 int main() {
     printf("\e[?25l"); //esconder cursor
@@ -92,10 +114,12 @@ int main() {
         printf("\e[%iA", ROWS + 2);
 
         atualiza_barras(dir_esquerda, dir_direita, &ybarra_esquerda, &ybarra_direita);
-
         desenha_barras(ybarra_esquerda, ybarra_direita);
-
         fim_jogo = checa_fim_jogo(pontos_esquerda, pontos_direita);
+        
+        usleep(5 * 1000000 / 60);
+
+        le_comandos(&dir_esquerda, &dir_direita, &quit);
 
         break;
     }
